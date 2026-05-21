@@ -2,29 +2,63 @@
 <html>
 <head>
     <title>Главная страница</title>
+
+    <style>
+        .light-find-box {
+            box-sizing: border-box;
+            width: 100%;
+            padding: 8px 10px;
+            border: 1px solid #cbd5e1;
+            border-radius: 4px;
+            font-size: 14px;
+            outline: none;
+        }
+
+        .light-find-box:focus {
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.16);
+        }
+    </style>
 </head>
 <body>
     <h1>JavaScript</h1>
 
     <script>
-        const onLoad = (evt) => {
-            const componentName = evt.target.dataset.name;
-            const component = document.createElement(componentName);
+        let loadedComponents = 0;
 
-            component.innerHTML = `
+        const renderApp = () => {
+            const panel = document.createElement('my-panel');
+            const select = document.createElement('my-select');
+
+            panel.dataset.header = 'Custom MultiSelect';
+
+            select.innerHTML = `
+                <div slot="search">
+                    <input class="light-find-box" placeholder="Поиск...">
+                </div>
+
                 <option value="opt1">Option 1</option>
                 <option value="opt2">Option 2</option>
                 <option value="opt3">Option 3</option>
             `;
 
-            document.body.append(component);
+            panel.append(select);
+            document.body.append(panel);
+        };
+
+        const onLoad = () => {
+            loadedComponents += 1;
+
+            if (loadedComponents === components.length) {
+                renderApp();
+            }
         };
 
         const onError = (err) => {
             console.error('Ошибка загрузки веб-компонента:', err);
         };
 
-        const components = ['my-select'];
+        const components = ['my-panel', 'my-select'];
 
         components.forEach((component) => {
             const script = document.createElement('script');

@@ -7,11 +7,20 @@ class MySelect extends HTMLElement {
     #selectPopupSearch;
     #optionsBox;
     #options = [];
+    #selectedValues = [];
+    value = '';
 
     connectedCallback() {
         this.#shadow = this.attachShadow({ mode: 'open' });
         this.#createTemplate();
-        this.#selectButton.addEventListener('click', this.#openPopup);
+        this.#selectButton.addEventListener('click', this.#togglePopup);
+        this.#selectPopupSearch.addEventListener('input', this.#filterOptions);
+        this.#optionsBox.addEventListener('change', this.#selectOption);
+        document.addEventListener('click', this.#closePopupOutside);
+    }
+
+    disconnectedCallback() {
+        document.removeEventListener('click', this.#closePopupOutside);
     }
 
     #createTemplate() {
@@ -100,6 +109,11 @@ class MySelect extends HTMLElement {
                     box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.16);
                 }
 
+                ::slotted([slot="search"]) {
+                    display: block;
+                    margin-bottom: 8px;
+                }
+
                 .select-popup-options {
                     display: flex;
                     flex-direction: column;
@@ -125,7 +139,10 @@ class MySelect extends HTMLElement {
                 <button class="select-button">Выберите опции</button>
 
                 <div class="select-popup">
-                    <input class="select-popup-search" placeholder="Search...">
+                    <slot name="search">
+                        <input class="select-popup-search" placeholder="Search...">
+                    </slot>
+
                     <div class="select-popup-options"></div>
                 </div>
             </div>
@@ -135,7 +152,8 @@ class MySelect extends HTMLElement {
 
         this.#selectButton = this.#shadow.querySelector('.select-button');
         this.#selectPopup = this.#shadow.querySelector('.select-popup');
-        this.#selectPopupSearch = this.#shadow.querySelector('.select-popup-search');
+        this.#selectPopupSearch = this.querySelector('[slot="search"] input')
+            || this.#shadow.querySelector('.select-popup-search');
         this.#optionsBox = this.#shadow.querySelector('.select-popup-options');
 
         this.#optionsBox.replaceWith(this.#renderOptions(this.#options));
@@ -154,7 +172,7 @@ class MySelect extends HTMLElement {
 
             optionTemplate.innerHTML = `
                 <label class="option" data-value="${option.value}">
-                    <input type="checkbox">
+                    <input type="checkbox" ${this.#selectedValues.includes(option.value) ? 'checked' : ''}>
                     ${option.text}
                 </label>
             `;
@@ -165,8 +183,45 @@ class MySelect extends HTMLElement {
         return optionsBox;
     }
 
-    #openPopup = () => {
+    #togglePopup = (evt) => {
+        evt.stopPropagation();
         this.#selectPopup.classList.toggle('open');
+    };
+
+    #filterOptions = () => {
+        const searchValue = this.#selectPopupSearch.value.toLowerCase().trim();
+        const filteredOptions = this.#options.filter((option) => (
+            option.text.toLowerCase().includes(searchValue)
+        ));
+
+        this.#optionsBox.replaceWith(this.#renderOptions(filteredOptions));
+        this.#optionsBox = this.#shadow.querySelector('.select-popup-options');
+        this.#optionsBox.addEventListener('change', this.#selectOption);
+    };
+
+    #selectOption = (evt) => {
+        const checkbox = evt.target;
+
+        if (checkbox.type !== 'checkbox') {
+            return;
+        }
+
+        const optionValue = checkbox.closest('.option').dataset.value;
+
+        if (checkbox.checked && !this.#selectedValues.includes(optionValue)) {
+            this.#selectedValues.push(optionValue);
+        } else {
+            this.#selectedValues = this.#selectedValues.filter((value) => value !== optionValue);
+        }
+
+        this.value = this.#selectedValues.join(',');
+        this.#selectButton.textContent = this.value || 'Выберите опции';
+    };
+
+    #closePopupOutside = (evt) => {
+        if (!evt.composedPath().includes(this)) {
+            this.#selectPopup.classList.remove('open');
+        }
     };
 }
 
