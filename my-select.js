@@ -1,60 +1,71 @@
 const componentName = document.currentScript.dataset.name;
 
 class MySelect extends HTMLElement {
-    constructor() {
-        super();
+    #selectButton;
+    #selectPopup;
+    #selectPopupSearch;
+    #optionsBox;
+    #options = [];
 
-        this.attachShadow({ mode: 'open' });
+    connectedCallback() {
+        this.#createTemplate();
+    }
 
-        this.shadowRoot.innerHTML = `
-            <style>
-                .select {
-                    width: 240px;
-                    padding: 12px;
-                    border: 1px solid #cccccc;
-                    border-radius: 8px;
-                    font-family: Arial, sans-serif;
-                }
+    #createTemplate() {
+        const optionElements = Array.from(this.querySelectorAll('option'));
 
-                .select__title {
-                    margin-bottom: 8px;
-                    font-weight: 700;
-                }
+        this.#options = optionElements.map((option) => ({
+            value: option.value,
+            text: option.textContent,
+        }));
 
-                .select__search {
-                    box-sizing: border-box;
-                    width: 100%;
-                    margin-bottom: 8px;
-                    padding: 6px;
-                }
+        optionElements.forEach((option) => option.remove());
 
-                .select__option {
-                    display: block;
-                    margin-bottom: 4px;
-                }
-            </style>
+        const template = document.createElement('template');
 
+        template.innerHTML = `
             <div class="select">
-                <div class="select__title">Мой Select</div>
+                <button class="select-button">Выберите опции</button>
 
-                <input class="select__search" type="text" placeholder="Поиск">
-
-                <label class="select__option">
-                    <input type="checkbox" value="option-1">
-                    Опция 1
-                </label>
-
-                <label class="select__option">
-                    <input type="checkbox" value="option-2">
-                    Опция 2
-                </label>
-
-                <label class="select__option">
-                    <input type="checkbox" value="option-3">
-                    Опция 3
-                </label>
+                <div class="select-popup">
+                    <input class="select-popup-search" placeholder="Search...">
+                    <div class="select-popup-options"></div>
+                </div>
             </div>
         `;
+
+        this.append(template.content.cloneNode(true));
+
+        this.#selectButton = this.querySelector('.select-button');
+        this.#selectPopup = this.querySelector('.select-popup');
+        this.#selectPopupSearch = this.querySelector('.select-popup-search');
+        this.#optionsBox = this.querySelector('.select-popup-options');
+
+        this.#optionsBox.replaceWith(this.#renderOptions(this.#options));
+        this.#optionsBox = this.querySelector('.select-popup-options');
+    }
+
+    #renderOptions(options) {
+        const template = document.createElement('template');
+
+        template.innerHTML = '<div class="select-popup-options"></div>';
+
+        const optionsBox = template.content.querySelector('.select-popup-options');
+
+        options.forEach((option) => {
+            const optionTemplate = document.createElement('template');
+
+            optionTemplate.innerHTML = `
+                <label class="option" data-value="${option.value}">
+                    <input type="checkbox">
+                    ${option.text}
+                </label>
+            `;
+
+            optionsBox.append(optionTemplate.content.cloneNode(true));
+        });
+
+        return optionsBox;
     }
 }
 
