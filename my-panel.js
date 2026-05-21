@@ -1,3 +1,4 @@
+(() => {
 const componentName = document.currentScript.dataset.name;
 
 class MyPanel extends HTMLElement {
@@ -22,7 +23,6 @@ class MyPanel extends HTMLElement {
                 }
 
                 .panel {
-                    overflow: hidden;
                     border: 1px solid #e2e8f0;
                     border-radius: 10px;
                     background: #ffffff;
@@ -58,3 +58,4 @@ class MyPanel extends HTMLElement {
 }
 
 customElements.define(componentName, MyPanel);
+})();

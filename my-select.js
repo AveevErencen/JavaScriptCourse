@@ -1,3 +1,4 @@
+(() => {
 const componentName = document.currentScript.dataset.name;
 
 class MySelect extends HTMLElement {
@@ -226,3 +227,4 @@ class MySelect extends HTMLElement {
 }
 
 customElements.define(componentName, MySelect);
+})();
