@@ -5,5 +5,33 @@
 </head>
 <body>
     <h1>JavaScript</h1>
+
+    <script>
+        const onLoad = (evt) => {
+            const componentName = evt.target.dataset.name;
+            const component = document.createElement(componentName);
+
+            document.body.append(component);
+        };
+
+        const onError = (err) => {
+            console.error('Ошибка загрузки веб-компонента:', err);
+        };
+
+        const components = ['my-select'];
+
+        components.forEach((component) => {
+            const script = document.createElement('script');
+
+            script.src = `./${component}.js`;
+            script.dataset.name = component;
+            script.defer = true;
+
+            script.addEventListener('load', onLoad);
+            script.addEventListener('error', onError);
+
+            document.body.append(script);
+        });
+    </script>
 </body>
 </html>
