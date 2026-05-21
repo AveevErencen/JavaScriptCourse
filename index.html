@@ -27,10 +27,11 @@
         let loadedComponents = 0;
 
         const renderApp = () => {
-            const panel = document.createElement('my-panel');
+            const card = document.createElement('my-card');
             const select = document.createElement('my-select');
 
-            panel.dataset.header = 'Custom MultiSelect';
+            card.setAttribute('header', 'Custom MultiSelect');
+            card.setAttribute('sub-header', 'Выберите несколько опций');
 
             select.innerHTML = `
                 <div slot="search">
@@ -42,8 +43,8 @@
                 <option value="opt3">Option 3</option>
             `;
 
-            panel.append(select);
-            document.body.append(panel);
+            card.append(select);
+            document.body.append(card);
         };
 
         const onLoad = () => {
@@ -58,7 +59,7 @@
             console.error('Ошибка загрузки веб-компонента:', err);
         };
 
-        const components = ['my-panel', 'my-select'];
+        const components = ['my-card', 'my-select'];
 
         components.forEach((component) => {
             const script = document.createElement('script');
