@@ -130,7 +130,7 @@
 
             result.textContent = 'Вычисление запущено...';
             pendingThreadTasks += 1;
-            thread.postMessage(3000);
+            thread.postMessage({ timeout: 3000 });
         });
 
         const onLoad = () => {
