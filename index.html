@@ -55,8 +55,9 @@
     <h1>JavaScript</h1>
 
     <section class="worker-demo">
-        <h2>Web Worker</h2>
+        <h2>Service Worker</h2>
         <button id="start">Start!</button>
+        <button id="unregister-service-worker">Unregister Service Worker</button>
 
         <div>
             <svg xmlns="http://www.w3.org/2000/svg" width="64" height="56" fill="none" class="spinner">
@@ -69,11 +70,18 @@
 
     <script>
         let loadedComponents = 0;
-        let thread = null;
-        let pendingThreadTasks = 0;
+        let serviceWorker = null;
 
         const startButton = document.getElementById('start');
+        const unregisterServiceWorkerButton = document.getElementById('unregister-service-worker');
         const result = document.getElementById('result');
+
+        const serviceWorkerContract = {
+            getResult: 'GET_RESULT',
+            recalculateResult: 'RECALCULATE_RESULT',
+            result: 'RESULT',
+            error: 'ERROR',
+        };
 
         const renderApp = () => {
             const card = document.createElement('my-card');
@@ -96,42 +104,90 @@
             document.body.append(card);
         };
 
-        const createThread = () => {
-            thread = new Worker('./thread.js');
+        const getServiceWorker = async (scriptURL, options) => {
+            if (!('serviceWorker' in navigator)) {
+                result.textContent = 'Ваш браузер не поддерживает Service Workers';
+                return null;
+            }
 
-            thread.addEventListener('message', (evt) => {
-                pendingThreadTasks -= 1;
-                result.textContent = evt.data;
+            try {
+                let registration = await navigator.serviceWorker.getRegistration();
 
-                if (pendingThreadTasks === 0) {
-                    thread.terminate();
-                    thread = null;
+                if (!registration) {
+                    registration = await navigator.serviceWorker.register(scriptURL, options);
                 }
-            });
 
-            thread.addEventListener('error', (err) => {
-                result.textContent = 'Ошибка выполнения веб-воркера';
-                console.error('Ошибка выполнения веб-воркера:', err);
-                thread.terminate();
-                thread = null;
-                pendingThreadTasks = 0;
-            });
+                registration = await navigator.serviceWorker.ready;
+
+                return {
+                    registration,
+                    container: navigator.serviceWorker,
+                    controller: registration.active,
+                    addEventListener: navigator.serviceWorker.addEventListener.bind(navigator.serviceWorker),
+                    postMessage: registration.active.postMessage.bind(registration.active),
+                };
+            } catch (error) {
+                result.textContent = 'Не удалось зарегистрировать сервис-воркер';
+                console.error(`Registration failed with ${error}`);
+                return null;
+            }
         };
 
         startButton.addEventListener('click', () => {
-            if (!window.Worker) {
-                result.textContent = 'Ваш браузер не поддерживает Web Workers';
+            if (!serviceWorker) {
+                result.textContent = 'Сервис-воркер еще не готов';
                 return;
             }
 
-            if (!thread) {
-                createThread();
+            result.textContent = 'Вычисление запущено...';
+
+            serviceWorker.postMessage({
+                type: serviceWorkerContract.recalculateResult,
+                payload: {
+                    timeout: 3000,
+                },
+            });
+        });
+
+        unregisterServiceWorkerButton.addEventListener('click', async () => {
+            const registration = await navigator.serviceWorker.getRegistration();
+
+            if (!registration) {
+                result.textContent = 'Сервис-воркер не зарегистрирован';
+                return;
             }
 
-            result.textContent = 'Вычисление запущено...';
-            pendingThreadTasks += 1;
-            thread.postMessage({ timeout: 3000 });
+            await registration.unregister();
+            serviceWorker = null;
+            result.textContent = 'Сервис-воркер удален';
         });
+
+        (async () => {
+            serviceWorker = await getServiceWorker('./thread.js', { scope: './' });
+
+            if (!serviceWorker) {
+                return;
+            }
+
+            serviceWorker.addEventListener('message', (evt) => {
+                const { type, payload } = evt.data;
+
+                if (type === serviceWorkerContract.result) {
+                    result.textContent = payload.result;
+                }
+
+                if (type === serviceWorkerContract.error) {
+                    result.textContent = payload.message;
+                }
+            });
+
+            serviceWorker.postMessage({
+                type: serviceWorkerContract.getResult,
+                payload: {
+                    timeout: 3000,
+                },
+            });
+        })();
 
         const onLoad = () => {
             loadedComponents += 1;
