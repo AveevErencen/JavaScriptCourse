@@ -18,13 +18,62 @@
             border-color: #3b82f6;
             box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.16);
         }
+
+        @keyframes spinner {
+            0% {
+                transform: scale(.1) rotate(0deg);
+                fill: currentColor;
+            }
+
+            33% {
+                transform: scale(1) rotate(150deg);
+                fill: transparent;
+            }
+
+            66% {
+                transform: scale(1) rotate(210deg);
+                fill: transparent;
+            }
+
+            100% {
+                transform: scale(.1) rotate(360deg);
+                fill: currentColor;
+            }
+        }
+
+        .spinner {
+            animation: spinner 1.5s infinite linear;
+            color: rgb(6, 75, 67);
+        }
+
+        .worker-demo {
+            margin-top: 32px;
+        }
     </style>
 </head>
 <body>
     <h1>JavaScript</h1>
 
+    <section class="worker-demo">
+        <h2>Web Worker</h2>
+        <button id="start">Start!</button>
+
+        <div>
+            <svg xmlns="http://www.w3.org/2000/svg" width="64" height="56" fill="none" class="spinner">
+                <path stroke="currentColor" stroke-width="4" d="M3.464 30a4 4 0 0 1 0-4L16 4.287a4 4 0 0 1 3.464-2h25.072a4 4 0 0 1 3.464 2L60.536 26a4 4 0 0 1 0 4L48 51.713a4 4 0 0 1-3.464 2H19.464a4 4 0 0 1-3.464-2L3.464 30Z"/>
+            </svg>
+        </div>
+
+        <div id="result"></div>
+    </section>
+
     <script>
         let loadedComponents = 0;
+        let thread = null;
+        let pendingThreadTasks = 0;
+
+        const startButton = document.getElementById('start');
+        const result = document.getElementById('result');
 
         const renderApp = () => {
             const card = document.createElement('my-card');
@@ -46,6 +95,43 @@
             card.append(select);
             document.body.append(card);
         };
+
+        const createThread = () => {
+            thread = new Worker('./thread.js');
+
+            thread.addEventListener('message', (evt) => {
+                pendingThreadTasks -= 1;
+                result.textContent = evt.data;
+
+                if (pendingThreadTasks === 0) {
+                    thread.terminate();
+                    thread = null;
+                }
+            });
+
+            thread.addEventListener('error', (err) => {
+                result.textContent = 'Ошибка выполнения веб-воркера';
+                console.error('Ошибка выполнения веб-воркера:', err);
+                thread.terminate();
+                thread = null;
+                pendingThreadTasks = 0;
+            });
+        };
+
+        startButton.addEventListener('click', () => {
+            if (!window.Worker) {
+                result.textContent = 'Ваш браузер не поддерживает Web Workers';
+                return;
+            }
+
+            if (!thread) {
+                createThread();
+            }
+
+            result.textContent = 'Вычисление запущено...';
+            pendingThreadTasks += 1;
+            thread.postMessage(3000);
+        });
 
         const onLoad = () => {
             loadedComponents += 1;
